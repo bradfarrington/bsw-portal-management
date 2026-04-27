@@ -1,0 +1,75 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html, body, #root {
+    height: 100%;
+  }
+  body {
+    @apply bg-bg text-ink font-sans antialiased;
+  }
+}
+
+@layer components {
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition focus:outline-none focus-visible:ring-2 focus-visible:ring-brand/50 disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+  .btn-primary {
+    @apply btn bg-brand text-white hover:bg-brand-600;
+  }
+  .btn-secondary {
+    @apply btn bg-white border border-line text-ink hover:bg-soft;
+  }
+  .btn-ghost {
+    @apply btn text-muted hover:text-ink hover:bg-soft;
+  }
+  .btn-danger {
+    @apply btn bg-white border border-brand text-brand hover:bg-brand hover:text-white;
+  }
+  .input {
+    @apply w-full rounded-xl border border-line bg-white px-3 py-2 text-sm placeholder:text-muted focus:border-brand focus:ring-1 focus:ring-brand outline-none;
+  }
+  .label {
+    @apply block text-xs font-medium text-muted mb-1 uppercase tracking-wide;
+  }
+  .card {
+    @apply bg-white rounded-card shadow-card p-6;
+  }
+  .table-row {
+    @apply hover:bg-soft/50 transition;
+  }
+}
+
+/* iPhone preview frame */
+.phone-frame {
+  width: 375px;
+  height: 760px;
+  border-radius: 56px;
+  background: #0b0b0d;
+  padding: 14px;
+  box-shadow:
+    inset 0 0 0 2px #1a1a1d,
+    0 30px 60px rgba(0, 0, 0, 0.18);
+  position: relative;
+}
+.phone-frame::before {
+  content: '';
+  position: absolute;
+  top: 18px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 110px;
+  height: 28px;
+  background: #0b0b0d;
+  border-radius: 999px;
+  z-index: 10;
+}
+.phone-screen {
+  width: 100%;
+  height: 100%;
+  border-radius: 42px;
+  overflow: hidden;
+  background: #F9F9FB;
+  position: relative;
+}
