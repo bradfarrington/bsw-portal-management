@@ -21,6 +21,7 @@ export function CatalogSectionsEditor({
 }) {
   const qc = useQueryClient();
   const [tab, setTab] = useState<TabType>('details');
+  const [addTabType, setAddTabType] = useState<TabType>('details');
 
   const sectionsByTab = useMemo(
     () => sections.filter((s) => s.tab_type === tab).slice().sort((a, b) => a.sort_order - b.sort_order),
@@ -35,22 +36,38 @@ export function CatalogSectionsEditor({
     return c;
   }, [sections]);
 
+  const visibleTabs = useMemo(
+    () => TAB_TYPES.filter((t) => counts[t] > 0),
+    [counts],
+  );
+
+  // If current tab becomes hidden, switch to first visible tab
+  useEffect(() => {
+    if (visibleTabs.length > 0 && !visibleTabs.includes(tab)) {
+      setTab(visibleTabs[0]);
+    }
+  }, [visibleTabs, tab]);
+
   const addSection = useMutation({
-    mutationFn: async () => {
+    mutationFn: async (targetTab: TabType) => {
+      const existingInTab = sections.filter((s) => s.tab_type === targetTab);
       const payload = {
         category_id: target.kind === 'category' ? target.id : null,
         subcategory_id: target.kind === 'subcategory' ? target.id : null,
-        tab_type: tab,
+        tab_type: targetTab,
         section_title: 'Untitled',
         section_content: null,
         overview_image_url: null,
         overview_image_mode: 'contain',
-        sort_order: sectionsByTab.length,
+        sort_order: existingInTab.length,
       };
       const { error } = await supabase.from('product_sections').insert(payload);
       if (error) throw error;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['product_sections'] }),
+    onSuccess: (_data, targetTab) => {
+      qc.invalidateQueries({ queryKey: ['product_sections'] });
+      setTab(targetTab);
+    },
     onError: (e) => alert((e as Error).message),
   });
 
@@ -61,27 +78,40 @@ export function CatalogSectionsEditor({
           <div className="text-xs text-muted uppercase tracking-wide">{target.kind}</div>
           <div className="font-semibold">{target.label}</div>
         </div>
-        <button onClick={() => addSection.mutate()} className="btn-primary">
-          <Plus size={14} /> Add section
-        </button>
+        <div className="flex items-center gap-2">
+          <select
+            className="input py-1.5 text-xs w-28"
+            value={addTabType}
+            onChange={(e) => setAddTabType(e.target.value as TabType)}
+          >
+            {TAB_TYPES.map((t) => (
+              <option key={t} value={t}>{t.charAt(0).toUpperCase() + t.slice(1)}</option>
+            ))}
+          </select>
+          <button onClick={() => addSection.mutate(addTabType)} className="btn-primary">
+            <Plus size={14} /> Add section
+          </button>
+        </div>
       </div>
 
-      <div className="flex gap-1 border-b border-line mb-4 overflow-x-auto">
-        {TAB_TYPES.map((t) => (
-          <button
-            key={t}
-            onClick={() => setTab(t)}
-            className={`px-4 py-2 text-sm font-medium border-b-2 transition ${tab === t ? 'border-brand text-brand' : 'border-transparent text-muted hover:text-ink'}`}
-          >
-            {t.charAt(0).toUpperCase() + t.slice(1)}
-            {counts[t] > 0 && <span className="ml-1.5 text-xs opacity-60">({counts[t]})</span>}
-          </button>
-        ))}
-      </div>
+      {visibleTabs.length > 0 && (
+        <div className="flex gap-1 border-b border-line mb-4 overflow-x-auto">
+          {visibleTabs.map((t) => (
+            <button
+              key={t}
+              onClick={() => setTab(t)}
+              className={`px-4 py-2 text-sm font-medium border-b-2 transition ${tab === t ? 'border-brand text-brand' : 'border-transparent text-muted hover:text-ink'}`}
+            >
+              {t.charAt(0).toUpperCase() + t.slice(1)}
+              <span className="ml-1.5 text-xs opacity-60">({counts[t]})</span>
+            </button>
+          ))}
+        </div>
+      )}
 
       {sectionsByTab.length === 0 ? (
         <div className="text-sm text-muted text-center py-8">
-          No sections under "{tab}". Click "Add section" to create one.
+          No sections yet. Select a tab type above and click "Add section" to get started.
         </div>
       ) : (
         <div className="space-y-4">
@@ -117,18 +147,15 @@ function SectionCard({
   const qc = useQueryClient();
   const [title, setTitle] = useState(section.section_title || '');
   const [content, setContent] = useState(section.section_content || '');
-  const [overview, setOverview] = useState<string | null>(section.overview_image_url);
 
   useEffect(() => {
     setTitle(section.section_title || '');
     setContent(section.section_content || '');
-    setOverview(section.overview_image_url);
-  }, [section.id, section.section_title, section.section_content, section.overview_image_url]);
+  }, [section.id, section.section_title, section.section_content]);
 
   const dirty =
     title !== (section.section_title || '') ||
-    content !== (section.section_content || '') ||
-    overview !== section.overview_image_url;
+    content !== (section.section_content || '');
 
   async function save() {
     const { error } = await supabase
@@ -136,8 +163,16 @@ function SectionCard({
       .update({
         section_title: title || null,
         section_content: content || null,
-        overview_image_url: overview,
       })
+      .eq('id', section.id);
+    if (error) alert(error.message);
+    else qc.invalidateQueries({ queryKey: ['product_sections'] });
+  }
+
+  async function saveOverview(url: string | null) {
+    const { error } = await supabase
+      .from('product_sections')
+      .update({ overview_image_url: url })
       .eq('id', section.id);
     if (error) alert(error.message);
     else qc.invalidateQueries({ queryKey: ['product_sections'] });
@@ -194,8 +229,8 @@ function SectionCard({
           label="Overview image (optional)"
           folder={folder}
           baseName={title || 'overview'}
-          value={overview}
-          onChange={setOverview}
+          value={section.overview_image_url}
+          onChange={saveOverview}
         />
         {dirty && (
           <div className="flex justify-end">
@@ -308,7 +343,7 @@ function ItemCard({
         baseName={label || 'item'}
         value={item.image_url}
         onChange={(url) => update({ image_url: url })}
-        aspect={item.item_type === 'swatch' ? 'aspect-square' : 'aspect-video'}
+        aspect="aspect-square"
       />
       <input
         className="input mt-2 text-xs py-1.5"

@@ -40,10 +40,10 @@ export function ImageUpload({
   return (
     <div>
       {label && <label className="label">{label}</label>}
-      <div className={`relative ${aspect} w-full rounded-xl overflow-hidden bg-soft border border-dashed border-line group`}>
+      <div className={`relative ${aspect} w-full rounded-xl overflow-hidden bg-white border border-dashed border-line group`}>
         {value ? (
           <>
-            <img src={value} alt="" className="w-full h-full object-cover" />
+            <img src={value} alt="" className="w-full h-full object-contain" />
             <button
               type="button"
               onClick={() => onChange(null)}

@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import type {
   ProductCategory,
   ProductSection,
@@ -107,6 +108,8 @@ function SubcategoryDetail({
   items: ProductSectionItem[];
 }) {
   const tabsWithContent = TAB_TYPES.filter((t) => sections.some((s) => s.tab_type === t));
+  const [activeTab, setActiveTab] = useState<TabType | null>(null);
+  const currentTab = activeTab && tabsWithContent.includes(activeTab) ? activeTab : tabsWithContent[0] ?? null;
   return (
     <div className="h-full flex flex-col bg-bg">
       <PhoneHeader title={sub.title} />
@@ -118,16 +121,20 @@ function SubcategoryDetail({
         )}
         {sub.tagline && <div className="px-4 pt-3 text-sm font-bold text-ink">{sub.tagline}</div>}
         <div className="px-4 py-2 flex gap-3 overflow-x-auto border-b border-line text-[11px] font-medium">
-          {tabsWithContent.map((t, i) => (
-            <span key={t} className={i === 0 ? 'text-brand border-b-2 border-brand pb-1' : 'text-muted pb-1'}>
+          {tabsWithContent.map((t) => (
+            <button
+              key={t}
+              onClick={() => setActiveTab(t)}
+              className={`pb-1 cursor-pointer ${t === currentTab ? 'text-brand border-b-2 border-brand' : 'text-muted hover:text-ink'}`}
+            >
               {t.charAt(0).toUpperCase() + t.slice(1)}
-            </span>
+            </button>
           ))}
         </div>
-        {tabsWithContent[0] && (
+        {currentTab && (
           <TabContent
-            tab={tabsWithContent[0]}
-            sections={sections.filter((s) => s.tab_type === tabsWithContent[0])}
+            tab={currentTab}
+            sections={sections.filter((s) => s.tab_type === currentTab)}
             items={items}
           />
         )}
@@ -155,6 +162,15 @@ function TabContent({
             <div key={s.id} className="bg-white rounded-2xl p-3 shadow-sm border border-line">
               {s.section_title && <div className="text-xs font-bold text-ink mb-1">{s.section_title}</div>}
               {s.section_content && <div className="text-[10px] text-muted whitespace-pre-line">{s.section_content}</div>}
+              {s.overview_image_url && (
+                <div className="mt-2 rounded-xl overflow-hidden bg-soft">
+                  <img
+                    src={s.overview_image_url}
+                    alt=""
+                    className={`w-full ${s.overview_image_mode === 'cover' ? 'object-cover' : 'object-contain'}`}
+                  />
+                </div>
+              )}
               {sec.length > 0 && (
                 <div className="mt-2 grid grid-cols-3 gap-2">
                   {sec

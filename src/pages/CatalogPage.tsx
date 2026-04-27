@@ -187,11 +187,38 @@ export function CatalogPage() {
             const cat = categories.find((c) => c.id === selected.id);
             if (!cat) return null;
             return (
-              <CatalogSectionsEditor
-                target={{ kind: 'category', id: cat.id, label: cat.title }}
-                sections={sections.filter((s) => s.category_id === cat.id)}
-                items={items}
-              />
+              <div className="card">
+                <div className="flex items-center justify-between mb-4">
+                  <div>
+                    <div className="text-xs text-muted uppercase tracking-wide">Category</div>
+                    <div className="text-lg font-semibold">{cat.title}</div>
+                    {cat.tagline && <div className="text-sm text-muted mt-0.5">{cat.tagline}</div>}
+                  </div>
+                  <button
+                    onClick={() => setEditingCategory(cat)}
+                    className="btn-secondary"
+                  >
+                    <Pencil size={14} /> Edit category
+                  </button>
+                </div>
+
+                <div className="space-y-4">
+                  <ImageUpload
+                    label="Category image"
+                    folder={`${cat.id}/category`}
+                    baseName={cat.title}
+                    value={cat.image_url}
+                    onChange={async (url) => {
+                      const { error } = await supabase
+                        .from('product_categories')
+                        .update({ image_url: url })
+                        .eq('id', cat.id);
+                      if (error) alert(error.message);
+                      else qc.invalidateQueries({ queryKey: ['product_categories'] });
+                    }}
+                  />
+                </div>
+              </div>
             );
           })()}
           {selected.kind === 'subcategory' && (() => {
